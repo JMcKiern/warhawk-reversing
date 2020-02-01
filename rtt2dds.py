@@ -8,7 +8,7 @@ def create_DDS_pixelformat(fourCC):
     '''
     size        = int32_to_bytes(32)
     flags       =  b'\x04\x00\x00\x00' # TODO: dwFlags
-    # fourCC
+    # fourCC passed as argument
     RGBBitCount = b'\x00\x00\x00\x00' #TODO
     RBitMask    = b'\x00\x00\x00\x00' #TODO
     GBitMask    = b'\x00\x00\x00\x00' #TODO
