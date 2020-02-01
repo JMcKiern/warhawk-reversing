@@ -2,40 +2,120 @@ import os
 import sys
 import struct
 
-def create_DDS_pixelformat(fourCC):
+def get_DDS_pixelformat_flags(isCompressed, hasAlpha):
+    # Flags
+    DDPF_ALPHAPIXELS = 0x1
+    DDPF_ALPHA       = 0x2
+    DDPF_FOURCC      = 0x4
+    DDPF_RGB         = 0x40
+    DDPF_YUV         = 0x200
+    DDPF_LUMINANCE   = 0x20000
+
+    # "Used in some older DDS files..."
+    # Let's just ignore for now
+    hasAlphaOnly = False
+    isYUV = False
+    isLUM = False
+
+    required = 0
+
+    flags = required
+    if hasAlpha:
+        flags |= DDPF_ALPHAPIXELS
+    if hasAlphaOnly:
+        flags |= DDPF_ALPHA
+    if isCompressed:
+        flags |= DDPF_FOURCC
+    else:
+        flags |= DDPF_RGB # TODO: Check if this should be set for RGBA
+    if isYUV:
+        flags |= DDPF_YUV
+    if isLUM:
+        flags |= DDPF_LUMINANCE
+    return flags
+
+def create_DDS_pixelformat(fourCC, isCompressed, hasAlpha):
     '''https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dds-pixelformat
     '''
     size        = int32_to_bytes(32)
-    flags       =  b'\x04\x00\x00\x00' # TODO: dwFlags
+    flags       = int32_to_bytes(get_DDS_pixelformat_flags(isCompressed, hasAlpha))
     # fourCC passed as argument
-    RGBBitCount = b'\x00\x00\x00\x00' #TODO
-    RBitMask    = b'\x00\x00\x00\x00' #TODO
-    GBitMask    = b'\x00\x00\x00\x00' #TODO
-    BBitMask    = b'\x00\x00\x00\x00' #TODO
-    ABitMask    = b'\x00\x00\x00\x00' #TODO
+    RGBBitCount = int32_to_bytes(0) #TODO
+    RBitMask    = int32_to_bytes(0) #TODO
+    GBitMask    = int32_to_bytes(0) #TODO
+    BBitMask    = int32_to_bytes(0) #TODO
+    ABitMask    = int32_to_bytes(0) #TODO
     return bytearray(size + flags + fourCC + RGBBitCount + RBitMask + GBitMask + BBitMask + ABitMask)
 
 def int32_to_bytes(number):
     return struct.pack("<I", number)
 
+def get_DDS_header_flags(isCompressed, isPitch, isMipmapped, isDepth):
+    # Flags
+    DDSD_CAPS        = 0x1
+    DDSD_HEIGHT      = 0x2
+    DDSD_WIDTH       = 0x4
+    DDSD_PITCH       = 0x8
+    DDSD_PIXELFORMAT = 0x1000
+    DDSD_MIPMAPCOUNT = 0x20000
+    DDSD_LINEARSIZE  = 0x80000
+    DDSD_DEPTH       = 0x800000
+
+    required = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT
+
+    flags = required
+    if isPitch:
+        if isCompressed:
+            flags |= DDSD_LINEARSIZE
+        else:
+            flags |= DDSD_PITCH
+    if isMipmapped:
+        flags |= DDSD_MIPMAPCOUNT
+    if isDepth:
+        flags |= DDSD_DEPTH
+    return flags
+
+def get_DDS_header_caps(isComplex, isMipmapped):
+    # Flags
+    DDSCAPS_COMPLEX = 0x8
+    DDSCAPS_MIPMAP  = 0x400000
+    DDSCAPS_TEXTURE = 0x1000
+
+    required = DDSCAPS_TEXTURE
+
+    flags = required
+    if isComplex:
+        flags |= DDSCAPS_COMPLEX
+    if isMipmapped:
+        flags |= DDSCAPS_MIPMAP
+    return flags
+
 def create_DDS_header(fourCC, res_width, res_height):
     '''https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dds-header
     '''
+    isCompressed = fourCC != b'\x00' * 4
+    hasAlpha = isCompressed # TODO: Change this
+    # TODO: why False?
+    isPitch = False
+    isMipmapped = False
+    isDepth = False
+    isComplex = False
+
     dds_magic            = b'DDS '
     header_size          = int32_to_bytes(124) #dwSize
-    flags                = b'\x07\x10\x00\x00' # TODO: dwFlags
+    flags                = int32_to_bytes(get_DDS_header_flags(isCompressed, isPitch, isMipmapped, isDepth))
     height               = int32_to_bytes(res_height)
     width                = int32_to_bytes(res_width)
-    pitch_or_linear_size = b'\x00\x00\x00\x00' # TODO
-    depth                = b'\x00\x00\x00\x00' # TODO
-    mipmapcount          = b'\x00\x00\x00\x00' # TODO
-    reserved             = b'\x00\x00\x00\x00' * 11
-    ddspf                = create_DDS_pixelformat(fourCC)
-    caps                 = b'\x08\x10\x40\x00' # TODO
-    caps2                = b'\x00\x00\x00\x00' # TODO
-    caps3                = b'\x00\x00\x00\x00'
-    caps4                = b'\x00\x00\x00\x00'
-    reserved2            = b'\x00\x00\x00\x00'
+    pitch_or_linear_size = int32_to_bytes(0) # TODO
+    depth                = int32_to_bytes(0) # TODO
+    mipmapcount          = int32_to_bytes(0) # TODO
+    reserved             = int32_to_bytes(0) * 11
+    ddspf                = create_DDS_pixelformat(fourCC, isCompressed, hasAlpha)
+    caps                 = int32_to_bytes(get_DDS_header_caps(isComplex, isMipmapped))
+    caps2                = int32_to_bytes(0) # TODO
+    caps3                = int32_to_bytes(0)
+    caps4                = int32_to_bytes(0)
+    reserved2            = int32_to_bytes(0)
 
     return bytearray(dds_magic +
     header_size +
@@ -79,7 +159,7 @@ def rtt2dds(filepath):
 
     # Find compression method
     if data[0x4] == 0x05: # No compression
-        fourCC = b'\x00\x00\x00\x00'
+        fourCC = int32_to_bytes(0)
     elif data[0x4] == 0x06:
         fourCC = b'DXT1'
     elif data[0x4] == 0x07:
