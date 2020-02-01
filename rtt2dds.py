@@ -2,7 +2,7 @@ import os
 import sys
 import struct
 
-def get_DDS_pixelformat_flags(isCompressed, hasAlpha):
+def get_DDS_pixelformat_flags(isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM):
     # Flags
     DDPF_ALPHAPIXELS = 0x1
     DDPF_ALPHA       = 0x2
@@ -10,12 +10,6 @@ def get_DDS_pixelformat_flags(isCompressed, hasAlpha):
     DDPF_RGB         = 0x40
     DDPF_YUV         = 0x200
     DDPF_LUMINANCE   = 0x20000
-
-    # "Used in some older DDS files..."
-    # Let's just ignore for now
-    hasAlphaOnly = False
-    isYUV = False
-    isLUM = False
 
     required = 0
 
@@ -27,24 +21,24 @@ def get_DDS_pixelformat_flags(isCompressed, hasAlpha):
     if isCompressed:
         flags |= DDPF_FOURCC
     else:
-        flags |= DDPF_RGB # TODO: Check if this should be set for RGBA
+        flags |= DDPF_RGB # TODO: Should this flags be added when hasAlpha?
     if isYUV:
         flags |= DDPF_YUV
     if isLUM:
         flags |= DDPF_LUMINANCE
     return flags
 
-def create_DDS_pixelformat(fourCC, isCompressed, hasAlpha):
+def create_DDS_pixelformat(fourCC, isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM):
     '''https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dds-pixelformat
     '''
     size        = int32_to_bytes(32)
-    flags       = int32_to_bytes(get_DDS_pixelformat_flags(isCompressed, hasAlpha))
+    flags       = int32_to_bytes(get_DDS_pixelformat_flags(isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM))
     # fourCC passed as argument
-    RGBBitCount = int32_to_bytes(0) #TODO
+    RGBBitCount = int32_to_bytes(8) #TODO
     RBitMask    = int32_to_bytes(0) #TODO
     GBitMask    = int32_to_bytes(0) #TODO
     BBitMask    = int32_to_bytes(0) #TODO
-    ABitMask    = int32_to_bytes(0) #TODO
+    ABitMask    = int32_to_bytes(0xFF) #TODO
     return bytearray(size + flags + fourCC + RGBBitCount + RBitMask + GBitMask + BBitMask + ABitMask)
 
 def int32_to_bytes(number):
@@ -94,12 +88,18 @@ def create_DDS_header(fourCC, res_width, res_height):
     '''https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dds-header
     '''
     isCompressed = fourCC != b'\x00' * 4
-    hasAlpha = isCompressed # TODO: Change this
+    hasAlpha = True#isCompressed # TODO: Change this
     # TODO: why False?
     isPitch = False
     isMipmapped = False
     isDepth = False
     isComplex = False
+    # "Used in some older DDS files..."
+    # Let's just ignore for now
+    hasAlphaOnly = True
+    isYUV = False
+    isLUM = False
+
 
     dds_magic            = b'DDS '
     header_size          = int32_to_bytes(124) #dwSize
@@ -110,9 +110,9 @@ def create_DDS_header(fourCC, res_width, res_height):
     depth                = int32_to_bytes(0) # TODO
     mipmapcount          = int32_to_bytes(0) # TODO
     reserved             = int32_to_bytes(0) * 11
-    ddspf                = create_DDS_pixelformat(fourCC, isCompressed, hasAlpha)
+    ddspf                = create_DDS_pixelformat(fourCC, isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM)
     caps                 = int32_to_bytes(get_DDS_header_caps(isComplex, isMipmapped))
-    caps2                = int32_to_bytes(0) # TODO
+    caps2                = int32_to_bytes(0) # TODO: deals with cubemaps/volume textures
     caps3                = int32_to_bytes(0)
     caps4                = int32_to_bytes(0)
     reserved2            = int32_to_bytes(0)
@@ -167,7 +167,8 @@ def rtt2dds(filepath):
     elif data[0x4] == 0x08:
         fourCC = b'DXT5'
     else:
-        raise ValueError('Unknown image format')
+        #raise ValueError('Unknown image format')
+        fourCC = int32_to_bytes(0)
 
     # Get resolution
     # TODO: width <-> height
