@@ -170,6 +170,9 @@ def rtt2dds(filepath):
         #raise ValueError('Unknown image format')
         fourCC = int32_to_bytes(0)
 
+    if data[0x5] != 0x0:
+        raise ValueError('Expecting 0x0 at pos 5')
+
     # Get resolution
     # TODO: width <-> height
     width = (data[0x8] << 8) + data[0x9]
