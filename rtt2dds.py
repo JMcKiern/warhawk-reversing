@@ -28,17 +28,17 @@ def get_DDS_pixelformat_flags(isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM
         flags |= DDPF_LUMINANCE
     return flags
 
-def create_DDS_pixelformat(fourCC, isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM):
+def create_DDS_pixelformat(fourCC, isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM, RGBBitCount, RBitMask, GBitMask, BBitMask, ABitMask):
     '''https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dds-pixelformat
     '''
     size        = int32_to_bytes(32)
     flags       = int32_to_bytes(get_DDS_pixelformat_flags(isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM))
     # fourCC passed as argument
-    RGBBitCount = int32_to_bytes(8) #TODO
-    RBitMask    = int32_to_bytes(0) #TODO
-    GBitMask    = int32_to_bytes(0) #TODO
-    BBitMask    = int32_to_bytes(0) #TODO
-    ABitMask    = int32_to_bytes(0xFF) #TODO
+    RGBBitCount = int32_to_bytes(RGBBitCount)
+    RBitMask    = int32_to_bytes(RBitMask)
+    GBitMask    = int32_to_bytes(GBitMask)
+    BBitMask    = int32_to_bytes(BBitMask)
+    ABitMask    = int32_to_bytes(ABitMask)
     return bytearray(size + flags + fourCC + RGBBitCount + RBitMask + GBitMask + BBitMask + ABitMask)
 
 def int32_to_bytes(number):
@@ -84,33 +84,23 @@ def get_DDS_header_caps(isComplex, isMipmapped):
         flags |= DDSCAPS_MIPMAP
     return flags
 
-def create_DDS_header(fourCC, res_width, res_height):
+def create_DDS_header(fourCC, width, height, hasAlpha, isPitch,
+        isMipmapped, hasDepth, isComplex, hasAlphaOnly, isYUV, isLUM,
+        RGBBitCount, RBitMask, GBitMask, BBitMask, ABitMask):
     '''https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dds-header
     '''
-    isCompressed = fourCC != b'\x00' * 4
-    hasAlpha = True#isCompressed # TODO: Change this
-    # TODO: why False?
-    isPitch = False
-    isMipmapped = False
-    hasDepth = False
-    isComplex = False
-    # "Used in some older DDS files..."
-    # Let's just ignore for now
-    hasAlphaOnly = True
-    isYUV = False
-    isLUM = False
-
+    isCompressed = (fourCC != (b'\x00' * 4))
 
     dds_magic            = b'DDS '
     header_size          = int32_to_bytes(124) #dwSize
     flags                = int32_to_bytes(get_DDS_header_flags(isCompressed, isPitch, isMipmapped, hasDepth))
-    height               = int32_to_bytes(res_height)
-    width                = int32_to_bytes(res_width)
+    height               = int32_to_bytes(height)
+    width                = int32_to_bytes(width)
     pitch_or_linear_size = int32_to_bytes(0) # TODO
     depth                = int32_to_bytes(0) # TODO
     mipmapcount          = int32_to_bytes(0) # TODO
     reserved             = int32_to_bytes(0) * 11
-    ddspf                = create_DDS_pixelformat(fourCC, isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM)
+    ddspf                = create_DDS_pixelformat(fourCC, isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM, RGBBitCount, RBitMask, GBitMask, BBitMask, ABitMask)
     caps                 = int32_to_bytes(get_DDS_header_caps(isComplex, isMipmapped))
     caps2                = int32_to_bytes(0) # TODO: deals with cubemaps/volume textures
     caps3                = int32_to_bytes(0)
@@ -153,12 +143,36 @@ def rtt2dds(filepath):
     with open(filepath, 'rb') as f:
         data = bytearray(f.read())
 
+    # Default values
+    hasAlpha    = False # TODO: why False?
+    isPitch     = False # TODO: why False?
+    isMipmapped = False # TODO: why False?
+    hasDepth    = False # TODO: why False?
+    isComplex   = False # TODO: why False?
+
+    # "Used in some older DDS files..."
+    # Let's just ignore for now
+    hasAlphaOnly = False # TODO: why False?
+    isYUV        = False # TODO: why False?
+    isLUM        = False # TODO: why False?
+
+    RGBBitCount = 0
+    RBitMask = 0
+    GBitMask = 0
+    BBitMask = 0
+    ABitMask = 0
+
     # Magic
     if data[0x0] != 0x80:
         raise ValueError('Expecting 0x80 at pos 0')
 
+    # File size (+4 since points to start of last DWORD)
+    filesize = (data[0x1] << 16) + (data[0x2] << 8) + (data[0x3]) + 4
+    if len(data) != filesize:
+        raise ValueError('Filesize does not match header')
+
     # Find compression method
-    if data[0x4] == 0x05: # No compression
+    if data[0x4] == 0x01 or data[0x4] == 0x05: # No compression
         fourCC = int32_to_bytes(0)
     elif data[0x4] == 0x06:
         fourCC = b'DXT1'
@@ -167,18 +181,40 @@ def rtt2dds(filepath):
     elif data[0x4] == 0x08:
         fourCC = b'DXT5'
     else:
-        #raise ValueError('Unknown image format')
-        fourCC = int32_to_bytes(0)
+        raise ValueError('Unknown compression method')
 
     if data[0x5] != 0x0:
         raise ValueError('Expecting 0x0 at pos 5')
 
+    # Get image format
+    img_fmt = (data[0x6] << 8) + data[0x7]
+    if img_fmt == 0xAAE4:
+        pass # Already set above
+    elif img_fmt == 0xA9FF:
+        # Boundary Mask
+        hasAlpha = True
+        hasAlphaOnly = True
+        RGBBitCount = 8
+        ABitMask    = 0xFF
+    elif img_fmt == 0xAA1B:
+        raise ValueError('Image format not yet reversed')
+    else:
+        raise ValueError('Unknown image format')
+
     # Get resolution
-    # TODO: width <-> height
     width = (data[0x8] << 8) + data[0x9]
     height = (data[0xa] << 8) + data[0xb]
 
-    DDS_header = create_DDS_header(fourCC, width, height)
+    # Not sure what this data is but I'm using it to block formats not reversed
+    img_fmt1 = (data[0xd] << 16) + (data[0xe] << 8) + data[0xf]
+    if img_fmt1 == 0x010102 or img_fmt1 == 0x0103002 or img_fmt1 == 0x010a02:
+        pass
+    else:
+        raise ValueError('Image format not yet reversed')
+
+    DDS_header = create_DDS_header(fourCC, width, height, hasAlpha,
+            isPitch, isMipmapped, hasDepth, isComplex, hasAlphaOnly, isYUV,
+            isLUM, RGBBitCount, RBitMask, GBitMask, BBitMask, ABitMask)
     for i in range(0, len(DDS_header)):
         data[i] = DDS_header[i]
 
@@ -187,7 +223,10 @@ def rtt2dds(filepath):
 
 def main():
     for arg in sys.argv[1:]:
-        rtt2dds(arg)
+        try:
+            rtt2dds(arg)
+        except ValueError as err:
+            print('ValueError: {}'.format(err))
 
 if __name__ == '__main__':
     main()
