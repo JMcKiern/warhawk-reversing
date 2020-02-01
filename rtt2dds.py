@@ -6,14 +6,14 @@ import struct
 def create_DDS_pixelformat(fourCC):
     '''https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dds-pixelformat
     '''
-    size = int32_to_bytes(32)
-    flags =  b'\x04\x00\x00\x00' # TODO: dwFlags
+    size        = int32_to_bytes(32)
+    flags       =  b'\x04\x00\x00\x00' # TODO: dwFlags
     # fourCC
     RGBBitCount = b'\x00\x00\x00\x00' #TODO
-    RBitMask = b'\x00\x00\x00\x00' #TODO
-    GBitMask = b'\x00\x00\x00\x00' #TODO
-    BBitMask = b'\x00\x00\x00\x00' #TODO
-    ABitMask = b'\x00\x00\x00\x00' #TODO
+    RBitMask    = b'\x00\x00\x00\x00' #TODO
+    GBitMask    = b'\x00\x00\x00\x00' #TODO
+    BBitMask    = b'\x00\x00\x00\x00' #TODO
+    ABitMask    = b'\x00\x00\x00\x00' #TODO
     return bytearray(size + flags + fourCC + RGBBitCount + RBitMask + GBitMask + BBitMask + ABitMask)
 
 def int32_to_bytes(number):
@@ -22,21 +22,21 @@ def int32_to_bytes(number):
 def create_DDS_header(fourCC, res_width, res_height):
     '''https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dds-header
     '''
-    dds_magic = b'DDS '
-    header_size = int32_to_bytes(124) #dwSize
-    flags = b'\x07\x10\x00\x00' # TODO: dwFlags
-    height = int32_to_bytes(res_height)
-    width = int32_to_bytes(res_width)
+    dds_magic            = b'DDS '
+    header_size          = int32_to_bytes(124) #dwSize
+    flags                = b'\x07\x10\x00\x00' # TODO: dwFlags
+    height               = int32_to_bytes(res_height)
+    width                = int32_to_bytes(res_width)
     pitch_or_linear_size = b'\x00\x00\x00\x00' # TODO
-    depth = b'\x00\x00\x00\x00' # TODO
-    mipmapcount = b'\x00\x00\x00\x00' # TODO
-    reserved = b'\x00\x00\x00\x00' * 11
-    ddspf = create_DDS_pixelformat(fourCC)
-    caps = b'\x08\x10\x40\x00' # TODO
-    caps2 = b'\x00\x00\x00\x00' # TODO
-    caps3 = b'\x00\x00\x00\x00'
-    caps4 = b'\x00\x00\x00\x00'
-    reserved2 = b'\x00\x00\x00\x00'
+    depth                = b'\x00\x00\x00\x00' # TODO
+    mipmapcount          = b'\x00\x00\x00\x00' # TODO
+    reserved             = b'\x00\x00\x00\x00' * 11
+    ddspf                = create_DDS_pixelformat(fourCC)
+    caps                 = b'\x08\x10\x40\x00' # TODO
+    caps2                = b'\x00\x00\x00\x00' # TODO
+    caps3                = b'\x00\x00\x00\x00'
+    caps4                = b'\x00\x00\x00\x00'
+    reserved2            = b'\x00\x00\x00\x00'
 
     return bytearray(dds_magic +
     header_size +
