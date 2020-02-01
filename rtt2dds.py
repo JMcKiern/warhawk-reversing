@@ -44,7 +44,7 @@ def create_DDS_pixelformat(fourCC, isCompressed, hasAlpha, hasAlphaOnly, isYUV, 
 def int32_to_bytes(number):
     return struct.pack("<I", number)
 
-def get_DDS_header_flags(isCompressed, isPitch, isMipmapped, isDepth):
+def get_DDS_header_flags(isCompressed, isPitch, isMipmapped, hasDepth):
     # Flags
     DDSD_CAPS        = 0x1
     DDSD_HEIGHT      = 0x2
@@ -65,7 +65,7 @@ def get_DDS_header_flags(isCompressed, isPitch, isMipmapped, isDepth):
             flags |= DDSD_PITCH
     if isMipmapped:
         flags |= DDSD_MIPMAPCOUNT
-    if isDepth:
+    if hasDepth:
         flags |= DDSD_DEPTH
     return flags
 
@@ -92,7 +92,7 @@ def create_DDS_header(fourCC, res_width, res_height):
     # TODO: why False?
     isPitch = False
     isMipmapped = False
-    isDepth = False
+    hasDepth = False
     isComplex = False
     # "Used in some older DDS files..."
     # Let's just ignore for now
@@ -103,7 +103,7 @@ def create_DDS_header(fourCC, res_width, res_height):
 
     dds_magic            = b'DDS '
     header_size          = int32_to_bytes(124) #dwSize
-    flags                = int32_to_bytes(get_DDS_header_flags(isCompressed, isPitch, isMipmapped, isDepth))
+    flags                = int32_to_bytes(get_DDS_header_flags(isCompressed, isPitch, isMipmapped, hasDepth))
     height               = int32_to_bytes(res_height)
     width                = int32_to_bytes(res_width)
     pitch_or_linear_size = int32_to_bytes(0) # TODO
