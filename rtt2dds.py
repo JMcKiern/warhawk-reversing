@@ -2,6 +2,12 @@ import os
 import sys
 import struct
 
+def int32_to_bytes(number):
+    return struct.pack("<I", number)
+
+def get_img_data_size(width, height, num_mipmaps, bytes_per_pixel, bytes_per_group):
+    return int(sum([max(bytes_per_pixel * width * height * ((1/(2.0 ** i)) ** 2), bytes_per_group) for i in range(0, num_mipmaps)]))
+
 def get_DDS_pixelformat_flags(isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM):
     # Flags
     DDPF_ALPHAPIXELS = 0x1
@@ -40,9 +46,6 @@ def create_DDS_pixelformat(fourCC, isCompressed, hasAlpha, hasAlphaOnly, isYUV, 
     BBitMask    = int32_to_bytes(BBitMask)
     ABitMask    = int32_to_bytes(ABitMask)
     return bytearray(size + flags + fourCC + RGBBitCount + RBitMask + GBitMask + BBitMask + ABitMask)
-
-def int32_to_bytes(number):
-    return struct.pack("<I", number)
 
 def get_DDS_header_flags(isCompressed, isPitch, isMipmapped, hasDepth):
     # Flags
@@ -84,7 +87,7 @@ def get_DDS_header_caps(isComplex, isMipmapped):
         flags |= DDSCAPS_MIPMAP
     return flags
 
-def create_DDS_header(fourCC, width, height, hasAlpha, isPitch,
+def create_DDS_header(fourCC, width, height, num_mipmaps, hasAlpha, isPitch,
         isMipmapped, hasDepth, isComplex, hasAlphaOnly, isYUV, isLUM,
         RGBBitCount, RBitMask, GBitMask, BBitMask, ABitMask):
     '''https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dds-header
@@ -98,7 +101,7 @@ def create_DDS_header(fourCC, width, height, hasAlpha, isPitch,
     width                = int32_to_bytes(width)
     pitch_or_linear_size = int32_to_bytes(0) # TODO
     depth                = int32_to_bytes(0) # TODO
-    mipmapcount          = int32_to_bytes(0) # TODO
+    mipmapcount          = int32_to_bytes(num_mipmaps)
     reserved             = int32_to_bytes(0) * 11
     ddspf                = create_DDS_pixelformat(fourCC, isCompressed, hasAlpha, hasAlphaOnly, isYUV, isLUM, RGBBitCount, RBitMask, GBitMask, BBitMask, ABitMask)
     caps                 = int32_to_bytes(get_DDS_header_caps(isComplex, isMipmapped))
@@ -139,7 +142,6 @@ def create_DDS_header(fourCC, width, height, hasAlpha, isPitch,
     # DWORD           dwReserved2;
 
 def rtt2dds(filepath):
-    print("Processing " + filepath)
     with open(filepath, 'rb') as f:
         data = bytearray(f.read())
 
@@ -206,13 +208,30 @@ def rtt2dds(filepath):
     height = (data[0xa] << 8) + data[0xb]
 
     # Not sure what this data is but I'm using it to block formats not reversed
-    img_fmt1 = (data[0xd] << 16) + (data[0xe] << 8) + data[0xf]
-    if img_fmt1 == 0x010102 or img_fmt1 == 0x0103002 or img_fmt1 == 0x010a02:
+    if data[0xd] == 0x1 and data[0xf] == 0x2:
         pass
     else:
-        raise ValueError('Image format not yet reversed')
+        # Files that reach here are the defaultfog files (but not the
+        # aqua ones)
+        raise ValueError('Image format not yet reversed (defaultfog)')
 
-    DDS_header = create_DDS_header(fourCC, width, height, hasAlpha,
+    num_mipmaps = data[0xe]
+    if fourCC == b'DXT1':
+        bits_per_group = 64
+        pixels_per_group = 16
+        bytes_per_group = bits_per_group / 8.0
+        bytes_per_pixel = bytes_per_group / (1.0 * pixels_per_group)
+    elif fourCC == b'DXT3' or fourCC == b'DXT5':
+        bits_per_group = 128
+        pixels_per_group = 16
+        bytes_per_group = bits_per_group / 8.0
+        bytes_per_pixel = bytes_per_group / (1.0 * pixels_per_group)
+    else:
+        bytes_per_pixel = RGBBitCount / 8.0
+    if len(data) - 0x80 != get_img_data_size(width, height, num_mipmaps, bytes_per_pixel, bytes_per_group):
+        raise ValueError('Mipmap number to filesize mismatch')
+
+    DDS_header = create_DDS_header(fourCC, width, height, num_mipmaps, hasAlpha,
             isPitch, isMipmapped, hasDepth, isComplex, hasAlphaOnly, isYUV,
             isLUM, RGBBitCount, RBitMask, GBitMask, BBitMask, ABitMask)
     for i in range(0, len(DDS_header)):
@@ -223,6 +242,7 @@ def rtt2dds(filepath):
 
 def main():
     for arg in sys.argv[1:]:
+        print("Processing " + arg)
         try:
             rtt2dds(arg)
         except ValueError as err:
