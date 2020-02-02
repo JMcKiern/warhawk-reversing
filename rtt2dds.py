@@ -228,6 +228,7 @@ def rtt2dds(filepath):
         bytes_per_pixel = bytes_per_group / (1.0 * pixels_per_group)
     else:
         bytes_per_pixel = RGBBitCount / 8.0
+        bytes_per_group = RGBBitCount / 8.0
     if len(data) - 0x80 != get_img_data_size(width, height, num_mipmaps, bytes_per_pixel, bytes_per_group):
         raise ValueError('Mipmap number to filesize mismatch')
 
