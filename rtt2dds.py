@@ -225,7 +225,8 @@ def rtt2dds(filepath):
     for i in range(0, len(DDS_header)):
         data[i] = DDS_header[i]
 
-    with open(os.path.join(os.path.dirname(filepath), os.path.basename(filepath)[:-3] + 'dds'), 'wb') as f:
+    out_filename = '.'.join(os.path.basename(filepath).split('.')[:-1]) + '.dds'
+    with open(os.path.join(os.path.dirname(filepath), out_filename), 'wb') as f:
         f.write(data)
 
 def main():
