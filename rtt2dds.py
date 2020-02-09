@@ -13,7 +13,6 @@ def rtt2dds(filepath):
     # Default values
     hasAlpha    = False # TODO: why False?
     isPitch     = False # TODO: why False?
-    isMipmapped = False # TODO: why False?
     hasDepth    = False # TODO: why False?
     isComplex   = False # TODO: why False?
 
@@ -99,6 +98,7 @@ def rtt2dds(filepath):
         bytes_per_group = RGBBitCount / 8.0
     if len(data) - 0x80 != ffutils.get_img_data_size(width, height, num_mipmaps, bytes_per_pixel, bytes_per_group):
         raise ValueError('Mipmap number to filesize mismatch')
+    isMipmapped = num_mipmaps != 0x01
 
     DDS_header = dds_header.create_DDS_header(fourCC, width, height,
             num_mipmaps, hasAlpha, isPitch, isMipmapped, hasDepth, isComplex,
