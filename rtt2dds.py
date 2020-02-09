@@ -31,7 +31,7 @@ def rtt2dds(filepath):
 
     # Magic
     if data[0x0] != 0x80:
-        raise ValueError('Expecting 0x80 at pos 0')
+        raise ValueError('Expecting 0x80 at pos 0x00')
 
     # File size (+4 since points to start of last DWORD)
     filesize = (data[0x1] << 16) + (data[0x2] << 8) + (data[0x3]) + 4
@@ -51,7 +51,7 @@ def rtt2dds(filepath):
         raise ValueError('Unknown compression method')
 
     if data[0x5] != 0x0:
-        raise ValueError('Expecting 0x0 at pos 5')
+        raise ValueError('Expecting 0x00 at pos 0x05')
 
     # Get image format
     img_fmt = (data[0x6] << 8) + data[0x7]
