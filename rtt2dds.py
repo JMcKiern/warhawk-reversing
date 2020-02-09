@@ -72,6 +72,9 @@ def rtt2dds(filepath):
     width = (data[0x8] << 8) + data[0x9]
     height = (data[0xa] << 8) + data[0xb]
 
+    if data[0xc] != 0x0:
+        raise ValueError('Expecting 0x0 at pos 0x0C')
+
     # Not sure what this data is but I'm using it to block formats not reversed
     if data[0xd] == 0x1 and data[0xf] == 0x2:
         pass
