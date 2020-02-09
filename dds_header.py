@@ -87,7 +87,7 @@ def create_DDS_header(fourCC, width, height, num_mipmaps, hasAlpha, isPitch,
     isCompressed = (fourCC != (b'\x00' * 4))
 
     dds_magic            = b'DDS '
-    header_size          = int32_to_bytes(124) #dwSize
+    header_size          = int32_to_bytes(124)
     flags                = int32_to_bytes(get_DDS_header_flags(isCompressed, isPitch, isMipmapped, hasDepth))
     height               = int32_to_bytes(height)
     width                = int32_to_bytes(width)
