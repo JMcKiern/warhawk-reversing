@@ -7,3 +7,7 @@ The file formats used are as follows:
 - .vram - Multiple textures
 - .ngp - Stores some texture data and presumably the model data
 - .ptr - Unknown
+
+## Contributing
+
+Any help would be much appreciated.
