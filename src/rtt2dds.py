@@ -4,29 +4,31 @@ import os
 import sys
 
 import ffutils
-import dds_header
+import DdsHeader
 
 def rtt2dds(filepath):
     with open(filepath, 'rb') as f:
         data = bytearray(f.read())
 
+    dds_header = DdsHeader.DdsHeader()
+
     # Default values
-    hasAlpha    = False # TODO: why False?
-    isPitch     = False # TODO: why False?
-    hasDepth    = False # TODO: why False?
-    isComplex   = False # TODO: why False?
+    dds_header.hasAlpha    = False # TODO: why False?
+    dds_header.isPitch     = False # TODO: why False?
+    dds_header.hasDepth    = False # TODO: why False?
+    dds_header.isComplex   = False # TODO: why False?
 
     # "Used in some older DDS files..."
     # Let's just ignore for now
-    hasAlphaOnly = False # TODO: why False?
-    isYUV        = False # TODO: why False?
-    isLUM        = False # TODO: why False?
+    dds_header.hasAlphaOnly = False # TODO: why False?
+    dds_header.isYUV        = False # TODO: why False?
+    dds_header.isLUM        = False # TODO: why False?
 
-    RGBBitCount = 0
-    RBitMask = 0
-    GBitMask = 0
-    BBitMask = 0
-    ABitMask = 0
+    dds_header.RGBBitCount = 0
+    dds_header.RBitMask    = 0
+    dds_header.GBitMask    = 0
+    dds_header.BBitMask    = 0
+    dds_header.ABitMask    = 0
 
     # Magic
     if data[0x0] != 0x80:
@@ -39,13 +41,13 @@ def rtt2dds(filepath):
 
     # Find compression method
     if data[0x4] == 0x01 or data[0x4] == 0x05: # No compression
-        fourCC = ffutils.int32_to_bytes(0)
+        dds_header.fourCC = ffutils.int32_to_bytes(0)
     elif data[0x4] == 0x06:
-        fourCC = b'DXT1'
+        dds_header.fourCC = b'DXT1'
     elif data[0x4] == 0x07:
-        fourCC = b'DXT3'
+        dds_header.fourCC = b'DXT3'
     elif data[0x4] == 0x08:
-        fourCC = b'DXT5'
+        dds_header.fourCC = b'DXT5'
     else:
         raise ValueError('Unknown compression method')
 
@@ -58,18 +60,18 @@ def rtt2dds(filepath):
         pass # Already set above
     elif img_fmt == 0xA9FF:
         # Boundary Mask
-        hasAlpha = True
-        hasAlphaOnly = True
-        RGBBitCount = 8
-        ABitMask    = 0xFF
+        dds_header.hasAlpha     = True
+        dds_header.hasAlphaOnly = True
+        dds_header.RGBBitCount  = 8
+        dds_header.ABitMask     = 0xFF
     elif img_fmt == 0xAA1B:
         raise ValueError('Image format not yet reversed')
     else:
         raise ValueError('Unknown image format')
 
     # Get resolution
-    width = (data[0x8] << 8) + data[0x9]
-    height = (data[0xa] << 8) + data[0xb]
+    dds_header.width = (data[0x8] << 8) + data[0x9]
+    dds_header.height = (data[0xa] << 8) + data[0xb]
 
     if data[0xc] != 0x0:
         raise ValueError('Expecting 0x0 at pos 0x0C')
@@ -82,13 +84,13 @@ def rtt2dds(filepath):
         # aqua ones)
         raise ValueError('Image format not yet reversed (defaultfog)')
 
-    num_mipmaps = data[0xe]
-    if fourCC == b'DXT1':
+    dds_header.num_mipmaps = data[0xe]
+    if dds_header.fourCC == b'DXT1':
         bits_per_group = 64
         pixels_per_group = 16
         bytes_per_group = bits_per_group / 8.0
         bytes_per_pixel = bytes_per_group / (1.0 * pixels_per_group)
-    elif fourCC == b'DXT3' or fourCC == b'DXT5':
+    elif dds_header.fourCC == b'DXT3' or dds_header.fourCC == b'DXT5':
         bits_per_group = 128
         pixels_per_group = 16
         bytes_per_group = bits_per_group / 8.0
@@ -96,16 +98,14 @@ def rtt2dds(filepath):
     else:
         bytes_per_pixel = RGBBitCount / 8.0
         bytes_per_group = RGBBitCount / 8.0
-    if len(data) - 0x80 != ffutils.get_img_data_size(width, height, num_mipmaps, bytes_per_pixel, bytes_per_group):
+    if len(data) - 0x80 != ffutils.get_img_data_size(dds_header.width,
+            dds_header.height, dds_header.num_mipmaps, bytes_per_pixel,
+            bytes_per_group):
         raise ValueError('Mipmap number to filesize mismatch')
-    isMipmapped = num_mipmaps != 0x01
 
-    DDS_header = dds_header.create_DDS_header(fourCC, width, height,
-            num_mipmaps, hasAlpha, isPitch, isMipmapped, hasDepth, isComplex,
-            hasAlphaOnly, isYUV, isLUM, RGBBitCount, RBitMask, GBitMask,
-            BBitMask, ABitMask)
-    for i in range(0, len(DDS_header)):
-        data[i] = DDS_header[i]
+    dds_header_bytes = dds_header.create()
+    for i in range(0, len(dds_header_bytes)):
+        data[i] = dds_header_bytes[i]
 
     out_filename = '.'.join(os.path.basename(filepath).split('.')[:-1]) + '.dds'
     with open(os.path.join(os.path.dirname(filepath), out_filename), 'wb') as f:
