@@ -1,4 +1,4 @@
-from ffutils import int32_to_bytes
+import struct
 
 class DdsFlags:
     # Pixelformat Flags
@@ -67,14 +67,14 @@ class DdsHeader:
     def __create_pixelformat(self):
         '''https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dds-pixelformat
         '''
-        size        = int32_to_bytes(32)
-        flags       = int32_to_bytes(self.__get_pixelformat_flags())
+        size        = struct.pack("<I", 32)
+        flags       = struct.pack("<I", self.__get_pixelformat_flags())
         # fourCC passed straight from class variable
-        RGBBitCount = int32_to_bytes(self.RGBBitCount)
-        RBitMask    = int32_to_bytes(self.RBitMask)
-        GBitMask    = int32_to_bytes(self.GBitMask)
-        BBitMask    = int32_to_bytes(self.BBitMask)
-        ABitMask    = int32_to_bytes(self.ABitMask)
+        RGBBitCount = struct.pack("<I", self.RGBBitCount)
+        RBitMask    = struct.pack("<I", self.RBitMask)
+        GBitMask    = struct.pack("<I", self.GBitMask)
+        BBitMask    = struct.pack("<I", self.BBitMask)
+        ABitMask    = struct.pack("<I", self.ABitMask)
         return bytearray(size + flags + self.fourCC + RGBBitCount + RBitMask +
                 GBitMask + BBitMask + ABitMask)
 
@@ -121,19 +121,19 @@ class DdsHeader:
 
         header = bytearray()
         header += self.__ddsMagic
-        header += int32_to_bytes(self.__headerSize)
-        header += int32_to_bytes(self.__get_header_flags())
-        header += int32_to_bytes(self.height)
-        header += int32_to_bytes(self.width)
-        header += int32_to_bytes(0) # TODO: pitch or linear size
-        header += int32_to_bytes(0) # TODO: depth
-        header += int32_to_bytes(self.num_mipmaps)
-        header += int32_to_bytes(0) * 11 # Reserved
+        header += struct.pack("<I", self.__headerSize)
+        header += struct.pack("<I", self.__get_header_flags())
+        header += struct.pack("<I", self.height)
+        header += struct.pack("<I", self.width)
+        header += struct.pack("<I", 0) # TODO: pitch or linear size
+        header += struct.pack("<I", 0) # TODO: depth
+        header += struct.pack("<I", self.num_mipmaps)
+        header += struct.pack("<I", 0) * 11 # Reserved
         header += self.__create_pixelformat()
-        header += int32_to_bytes(self.__get_caps_flags())
-        header += int32_to_bytes(0) # TODO: caps2 - this deals with cubemaps/volume textures
-        header += int32_to_bytes(0) # caps3
-        header += int32_to_bytes(0) # caps4
-        header += int32_to_bytes(0) # reserved2
+        header += struct.pack("<I", self.__get_caps_flags())
+        header += struct.pack("<I", 0) # TODO: caps2 - this deals with cubemaps/volume textures
+        header += struct.pack("<I", 0) # caps3
+        header += struct.pack("<I", 0) # caps4
+        header += struct.pack("<I", 0) # reserved2
 
         return header

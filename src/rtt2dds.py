@@ -2,6 +2,7 @@
 
 import os
 import sys
+import struct
 
 import ffutils
 import DdsHeader
@@ -41,7 +42,7 @@ def rtt2dds(filepath):
 
     # Find compression method
     if data[0x4] == 0x01 or data[0x4] == 0x05: # No compression
-        dds_header.fourCC = ffutils.int32_to_bytes(0)
+        dds_header.fourCC = struct.pack("<I", 0)
     elif data[0x4] == 0x06:
         dds_header.fourCC = b'DXT1'
     elif data[0x4] == 0x07:
