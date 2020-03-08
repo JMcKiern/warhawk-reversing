@@ -2,3 +2,6 @@
 *.dds
 *.rtt
 __pycache__/
+*.ngp
+*.ptr
+*.vram
