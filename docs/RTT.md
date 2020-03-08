@@ -10,7 +10,7 @@ The header is 0x80 bytes long but in almost all cases, the data resides in the f
 |Offset|Length|Example|Name|Notes|
 |---|---|---|---|---|
 |0x00|0x01|0x80|Magic Number|RTT's always start with 0x80|
-|0x01|0x03|0x0055EC|Last DWORD| Is equal to file size - 0x04|
+|0x01|0x03|0x0055EC|Last DWORD| Is equal to file size minus 0x04|
 |0x04|0x01|0x08|Compression Method|0x01, 0x05 - No compression?<br>0x06 - DXT1<br>0x07 - DXT3<br>0x08 - DXT5|
 |0x05|0x01|0x00|Data Location Flag|Always 0x00 in .rtt files<br>When in an .rtt header in a .ngp file:<br>- 0x00 - Data in .vram<br>- 0x01 - Data in .ngp|
 |0x06|0x02|0xAAE4|Image Format|0xAAE4 - DXT1, DXT3, DXT5, ...?<br>0xA9FF - Boundary Mask (1 byte alphas)<br>0xAA1B - *Unknown*|
