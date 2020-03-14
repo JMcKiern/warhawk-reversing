@@ -7,13 +7,8 @@ import struct
 import ffutils
 import DdsHeader
 
-def findZeroesAfter(data, start):
-    for i in range(start, len(data), 0x10):
-        if (data[i:i+0x10] == b'\x00' * 0x10):
-            return i
-
 def parseSingleHeader(rttmod_header, ngp_data, vram_data, num):
-    print("Parsing: " + str(rttmod_header))
+    print("Parsing: " + str([hex(j) for j in rttmod_header]))
     if (len(rttmod_header) != 0x10):
         raise ValueError('rttmod_header should be size 0x10')
     loc, = struct.unpack(">I", rttmod_header[0xc:])
@@ -63,18 +58,27 @@ def parseSingleHeader(rttmod_header, ngp_data, vram_data, num):
     with open(hex(num) + ".rtt", 'wb') as f:
         f.write(rttHeader + texture_data)
 
+def dereferenceRelativePointer(data, locOfPointer):
+    relativeOffset, = struct.unpack(">i", data[locOfPointer:locOfPointer+4])
+    offset = locOfPointer + relativeOffset
+    return offset
+
 def main():
-    start_header = int(sys.argv[1], 16)
-    end_header = int(sys.argv[2], 16)
-    filename = sys.argv[3]
-    print(hex(start_header) + " " + hex(end_header) + " " + filename)
-    with open(filename + '.ngp', 'rb') as f:
+    filename = sys.argv[1]
+
+    with open(filename, 'rb') as f:
         ngp_data = bytearray(f.read())
-    with open(filename + '.vram', 'rb') as f:
+    vram_filename = '.'.join(filename.split(".")[:-1]) + ".vram"
+    with open(vram_filename, 'rb') as f:
         vram_data = bytearray(f.read())
-    for i in range(start_header, end_header, 0x10):
-        if (ngp_data[i:i+0x10] != b'\x00' * 0x10):
-            parseSingleHeader(ngp_data[i:i+0x10], ngp_data, vram_data, i)
+
+    texturePointersOffset = dereferenceRelativePointer(ngp_data, 0x10)
+    numberOfTextures, = struct.unpack(">I", ngp_data[texturePointersOffset:texturePointersOffset+4])
+    print("There are " + str(numberOfTextures) + " textures")
+    for i in range(texturePointersOffset+4, texturePointersOffset+((numberOfTextures+1)*4), 4):
+        textureHeaderOffset = dereferenceRelativePointer(ngp_data, i)
+        header = ngp_data[textureHeaderOffset:textureHeaderOffset+0x10]
+        parseSingleHeader(header, ngp_data, vram_data, i)
 
 if __name__ == '__main__':
     main()
