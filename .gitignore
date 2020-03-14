@@ -5,3 +5,4 @@ __pycache__/
 *.ngp
 *.ptr
 *.vram
+*.obj
