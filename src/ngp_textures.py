@@ -7,8 +7,7 @@ import struct
 import ffutils
 import DdsHeader
 
-def parseSingleHeader(rttmod_header, ngp_data, vram_data, num):
-    print("Parsing: " + str([hex(j) for j in rttmod_header]))
+def parseNGPTextureHeader(rttmod_header, ngp_data, vram_data):
     if (len(rttmod_header) != 0x10):
         raise ValueError('rttmod_header should be size 0x10')
     loc, = struct.unpack(">I", rttmod_header[0xc:])
@@ -54,9 +53,7 @@ def parseSingleHeader(rttmod_header, ngp_data, vram_data, num):
 
     size = 0x80 + img_data_size
     rttHeader = b'\x80' + struct.pack(">I", size - 4)[1:] + rttmod_header[:0xc] + ((b'\x00' * 0x10) * 7)
-
-    with open(hex(num) + ".rtt", 'wb') as f:
-        f.write(rttHeader + texture_data)
+    return bytearray(rttHeader + texture_data)
 
 def dereferenceRelativePointer(data, locOfPointer):
     relativeOffset, = struct.unpack(">i", data[locOfPointer:locOfPointer+4])
@@ -78,7 +75,10 @@ def main():
     for i in range(texturePointersOffset+4, texturePointersOffset+((numberOfTextures+1)*4), 4):
         textureHeaderOffset = dereferenceRelativePointer(ngp_data, i)
         header = ngp_data[textureHeaderOffset:textureHeaderOffset+0x10]
-        parseSingleHeader(header, ngp_data, vram_data, i)
+        print("Parsing: " + str([hex(j) for j in header]))
+        rttdata = parseNGPTextureHeader(header, ngp_data, vram_data)
+        with open(hex(i) + ".rtt", 'wb') as f:
+            f.write(rttdata)
 
 if __name__ == '__main__':
     main()
