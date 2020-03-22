@@ -7,10 +7,7 @@ import struct
 import ffutils
 import DdsHeader
 
-def rtt2dds(filepath):
-    with open(filepath, 'rb') as f:
-        data = bytearray(f.read())
-
+def rtt2dds(data):
     dds_header = DdsHeader.DdsHeader()
 
     # Default values
@@ -108,15 +105,18 @@ def rtt2dds(filepath):
     for i in range(0, len(dds_header_bytes)):
         data[i] = dds_header_bytes[i]
 
-    out_filename = '.'.join(os.path.basename(filepath).split('.')[:-1]) + '.dds'
-    with open(os.path.join(os.path.dirname(filepath), out_filename), 'wb') as f:
-        f.write(data)
+    return data
 
 def main():
-    for arg in sys.argv[1:]:
-        print("Processing " + arg)
+    for filepath in sys.argv[1:]:
+        print("Processing " + filepath)
         try:
-            rtt2dds(arg)
+            with open(filepath, 'rb') as f:
+                rttdata = bytearray(f.read())
+            ddsdata = rtt2dds(rttdata)
+            out_filename = '.'.join(os.path.basename(filepath).split('.')[:-1]) + '.dds'
+            with open(os.path.join(os.path.dirname(filepath), out_filename), 'wb') as f:
+                f.write(ddsdata)
         except ValueError as err:
             print('ValueError: {}'.format(err))
 
