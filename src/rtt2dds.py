@@ -94,8 +94,8 @@ def rtt2dds(data):
         bytes_per_group = bits_per_group / 8.0
         bytes_per_pixel = bytes_per_group / (1.0 * pixels_per_group)
     else:
-        bytes_per_pixel = RGBBitCount / 8.0
-        bytes_per_group = RGBBitCount / 8.0
+        bytes_per_pixel = dds_header.RGBBitCount / 8.0
+        bytes_per_group = dds_header.RGBBitCount / 8.0
     if len(data) - 0x80 != ffutils.get_img_data_size(dds_header.width,
             dds_header.height, dds_header.num_mipmaps, bytes_per_pixel,
             bytes_per_group):
