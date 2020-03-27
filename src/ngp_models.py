@@ -95,11 +95,21 @@ def extractModel(filenameStem: str, headerOffset: int):
     vertices = getVertices(filenameStem, vertexOffset, numberOfVertices)
     uvs = getUVs(filenameStem, header, numberOfVertices)
 
+
+    ptr = dereferenceRelativePointer(ngp_data, headerOffset+0x04)
+    dataptr = dereferenceRelativePointer(ngp_data, ptr+0x10)
+    textureHeaderOffset = -1
+    for i in range(0, ptr - dataptr, 4):
+        if (ngp_data[dataptr+i:dataptr+i+4] == struct.pack(">I", 0x00111122) and
+                ngp_data[dataptr+i+4:dataptr+i+8] != struct.pack(">I", 0x00)):
+            textureHeaderOffset = dereferenceRelativePointer(ngp_data, dataptr+i+4)
+
     modelName = filenameStem + "_" + hex(headerOffset)
 
     with open(modelName + ".obj", "w") as f:
-        f.write("mtllib " + modelName + ".mtl\n")
-        f.write("usemtl Textured\n")
+        if textureHeaderOffset != -1:
+            f.write("mtllib " + modelName + ".mtl\n")
+            f.write("usemtl Textured\n")
         f.write("o " + modelName + "\n")
         for i in range(0, len(vertices)):
             f.write("v ")
@@ -114,37 +124,45 @@ def extractModel(filenameStem: str, headerOffset: int):
             f.write(" ".join([(str(v) + "/" + str(v)) for v in faces[i]]))
             f.write("\n")
 
-    ptr = dereferenceRelativePointer(ngp_data, headerOffset+0x04)
-    dataptr = dereferenceRelativePointer(ngp_data, ptr+0x10)
-    for i in range(0, ptr - dataptr, 4):
-        if ngp_data[dataptr+i:dataptr+i+4] == struct.pack(">I", 0x00111122):
-            if ngp_data[dataptr+i+4:dataptr+i+8] != struct.pack(">I", 0x00):
-                textureHeaderOffset = dereferenceRelativePointer(ngp_data, dataptr+i+4)
     textureFilename = modelName + ".dds"
-    rttdata = extractNGPTexture(filenameStem, textureHeaderOffset)
-    ddsdata = rtt2dds.rtt2dds(rttdata)
-    with open(textureFilename, "wb") as f:
-        f.write(ddsdata)
+    if textureHeaderOffset != -1:
+        rttdata = extractNGPTexture(filenameStem, textureHeaderOffset)
+        ddsdata = rtt2dds.rtt2dds(rttdata)
+        with open(textureFilename, "wb") as f:
+            f.write(ddsdata)
 
-    with open(modelName + ".mtl", "w") as f:
-        f.write("newmtl Textured\n")
-        f.write("Kd 1.0 1.0 1.0\n")
-        f.write("map_Kd " + textureFilename + "\n")
+        with open(modelName + ".mtl", "w") as f:
+            f.write("newmtl Textured\n")
+            f.write("Kd 1.0 1.0 1.0\n")
+            f.write("map_Kd " + textureFilename + "\n")
 
-def extractModels(filename: str, start: int, end: int):
+def findNextModel(data: bytearray, start: int):
+    for i in range(start, len(data), 4):
+        if (data[i:i+0x4] != struct.pack(">I", 1)):
+            continue
+        if (data[i+0x14:i+0x18] != struct.pack(">I", 0x3C000000)):
+            continue
+        numLinkers, = struct.unpack(">B", data[i+0x26:i+0x27])
+        length = 0x2C + (numLinkers * 0x0C)
+        return i, length
+    return -1, 0
+
+def extractModels(filename: str):
     with open(filename + ".ngp", 'rb') as f:
         data = bytearray(f.read())
 
-    for i in range(start, end, 0x4):
-        if (data[i:i+0x4] == struct.pack(">I", 1)):
-            extractModel(filename, i)
+    loc = 0x0
+    while True:
+        loc, length = findNextModel(data, loc)
+        if loc == -1:
+            break
+        print("Extracting model located at " + hex(loc))
+        extractModel(filename, loc)
+        loc += length
 
 def main():
-    start_header = int(sys.argv[1], 16)
-    end_header = int(sys.argv[2], 16)
-    filename = sys.argv[3]
-    print(hex(start_header) + " " + hex(end_header) + " " + filename)
-    extractModels(filename, start_header, end_header)
+    filename = sys.argv[1]
+    extractModels(filename)
 
 if __name__ == "__main__":
     main()
