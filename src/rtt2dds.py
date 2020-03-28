@@ -7,7 +7,7 @@ import argparse
 import ffutils
 import DdsHeader
 
-def rtt2dds(data, isPermissiveMode=False):
+def rtt2dds(data: bytearray, isPermissiveMode: bool=False):
     dds_header = DdsHeader.DdsHeader()
 
     # Default values
