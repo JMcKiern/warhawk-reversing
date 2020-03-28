@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys
+import argparse
 import struct
 import rtt2dds
 import ngp_textures
@@ -150,7 +150,7 @@ def findNextModel(data: bytearray, start: int):
     return -1, 0
 
 def extractModels(filename: str):
-    with open(filename + ".ngp", 'rb') as f:
+    with open(filename, 'rb') as f:
         data = bytearray(f.read())
 
     loc = 0x0
@@ -159,12 +159,16 @@ def extractModels(filename: str):
         if loc == -1:
             break
         print("Extracting model located at " + hex(loc))
-        extractModel(filename, loc)
+        filenameStem = ".".join(filename.split(".")[:-1])
+        extractModel(filenameStem, loc)
         loc += length
 
 def main():
-    filename = sys.argv[1]
-    extractModels(filename)
+    parser = argparse.ArgumentParser(
+            description="Extract models (.obj with .mtl and .dds files) from .ngp")
+    parser.add_argument("filepath", help="path to .ngp file (make sure corresponding .vram is in the same path)")
+    args = parser.parse_args()
+    extractModels(args.filepath)
 
 if __name__ == "__main__":
     main()

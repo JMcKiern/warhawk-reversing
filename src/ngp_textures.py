@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-import sys
+import argparse
 import struct
 
 import ffutils
@@ -61,7 +61,11 @@ def dereferenceRelativePointer(data, locOfPointer):
     return offset
 
 def main():
-    filename = sys.argv[1]
+    parser = argparse.ArgumentParser(
+            description="Extract textures from .ngp")
+    parser.add_argument("filepath", help="path to .ngp file (make sure corresponding .vram is in the same path)")
+    args = parser.parse_args()
+    filename = args.filepath
 
     with open(filename, 'rb') as f:
         ngp_data = bytearray(f.read())
