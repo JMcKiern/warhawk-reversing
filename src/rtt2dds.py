@@ -127,7 +127,7 @@ def main():
         print("Running in permissive mode")
 
     for filepath in args.filepath:
-        print("Processing " + filepath)
+        print("Processing " + filepath, end="")
         try:
             with open(filepath, 'rb') as f:
                 rttdata = bytearray(f.read())
@@ -135,8 +135,9 @@ def main():
             out_filename = '.'.join(os.path.basename(filepath).split('.')[:-1]) + '.dds'
             with open(os.path.join(os.path.dirname(filepath), out_filename), 'wb') as f:
                 f.write(ddsdata)
+            print(" - Done")
         except ValueError as err:
-            print('ValueError: {}'.format(err))
+            print(' - ValueError: {}'.format(err))
 
 if __name__ == '__main__':
     main()
