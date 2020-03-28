@@ -31,14 +31,20 @@ def rtt2dds(data, isPermissiveMode):
 
     # Magic
     if data[0x0] != 0x80:
-        if not isPermissiveMode:
-            raise ValueError('Expecting 0x80 at pos 0x00')
+        msg = 'Expecting 0x80 at pos 0x00'
+        if isPermissiveMode:
+            print(" - " + msg, end="")
+        else:
+            raise ValueError(msg)
 
     # File size (+4 since points to start of last DWORD)
     filesize = (data[0x1] << 16) + (data[0x2] << 8) + (data[0x3]) + 4
     if len(data) != filesize:
-        if not isPermissiveMode:
-            raise ValueError('Filesize does not match header')
+        msg = 'Filesize does not match header'
+        if isPermissiveMode:
+            print(" - " + msg, end="")
+        else:
+            raise ValueError(msg)
 
     # Find compression method
     if data[0x4] == 0x01 or data[0x4] == 0x05: # No compression
@@ -50,12 +56,18 @@ def rtt2dds(data, isPermissiveMode):
     elif data[0x4] == 0x08:
         dds_header.fourCC = b'DXT5'
     else:
-        if not isPermissiveMode:
-            raise ValueError('Unknown compression method')
+        msg = 'Unknown compression method'
+        if isPermissiveMode:
+            print(" - " + msg, end="")
+        else:
+            raise ValueError(msg)
 
     if data[0x5] != 0x0:
-        if not isPermissiveMode:
-            raise ValueError('Expecting 0x00 at pos 0x05')
+        msg = 'Expecting 0x00 at pos 0x05'
+        if isPermissiveMode:
+            print(" - " + msg, end="")
+        else:
+            raise ValueError(msg)
 
     # Get image format
     img_fmt = (data[0x6] << 8) + data[0x7]
@@ -68,19 +80,28 @@ def rtt2dds(data, isPermissiveMode):
         dds_header.RGBBitCount  = 8
         dds_header.ABitMask     = 0xFF
     elif img_fmt == 0xAA1B:
-        if not isPermissiveMode:
-            raise ValueError('Image format not yet reversed')
+        msg = 'Image format not yet reversed'
+        if isPermissiveMode:
+            print(" - " + msg, end="")
+        else:
+            raise ValueError(msg)
     else:
-        if not isPermissiveMode:
-            raise ValueError('Unknown image format')
+        msg = 'Unknown image format'
+        if isPermissiveMode:
+            print(" - " + msg, end="")
+        else:
+            raise ValueError(msg)
 
     # Get resolution
     dds_header.width = (data[0x8] << 8) + data[0x9]
     dds_header.height = (data[0xa] << 8) + data[0xb]
 
     if data[0xc] != 0x0:
-        if not isPermissiveMode:
-            raise ValueError('Expecting 0x0 at pos 0x0C')
+        msg = 'Expecting 0x0 at pos 0x0C'
+        if isPermissiveMode:
+            print(" - " + msg, end="")
+        else:
+            raise ValueError(msg)
 
     # Not sure what this data is but I'm using it to block formats not reversed
     if data[0xd] == 0x1 and data[0xf] == 0x2:
@@ -88,8 +109,11 @@ def rtt2dds(data, isPermissiveMode):
     else:
         # Files that reach here are the defaultfog files (but not the
         # aqua ones)
-        if not isPermissiveMode:
-            raise ValueError('Image format not yet reversed (defaultfog)')
+        msg = 'Image format not yet reversed (defaultfog)'
+        if isPermissiveMode:
+            print(" - " + msg, end="")
+        else:
+            raise ValueError(msg)
 
     dds_header.num_mipmaps = data[0xe]
     if dds_header.fourCC == b'DXT1':
@@ -108,8 +132,11 @@ def rtt2dds(data, isPermissiveMode):
     if len(data) - 0x80 != ffutils.get_img_data_size(dds_header.width,
             dds_header.height, dds_header.num_mipmaps, bytes_per_pixel,
             bytes_per_group):
-        if not isPermissiveMode:
-            raise ValueError('Mipmap number to filesize mismatch')
+        msg = 'Mipmap number to filesize mismatch'
+        if isPermissiveMode:
+            print(" - " + msg, end="")
+        else:
+            raise ValueError(msg)
 
     dds_header_bytes = dds_header.create()
     for i in range(0, len(dds_header_bytes)):
