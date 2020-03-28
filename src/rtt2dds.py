@@ -3,11 +3,12 @@
 import os
 import sys
 import struct
+import argparse
 
 import ffutils
 import DdsHeader
 
-def rtt2dds(data):
+def rtt2dds(data, isPermissiveMode):
     dds_header = DdsHeader.DdsHeader()
 
     # Default values
@@ -30,12 +31,14 @@ def rtt2dds(data):
 
     # Magic
     if data[0x0] != 0x80:
-        raise ValueError('Expecting 0x80 at pos 0x00')
+        if not isPermissiveMode:
+            raise ValueError('Expecting 0x80 at pos 0x00')
 
     # File size (+4 since points to start of last DWORD)
     filesize = (data[0x1] << 16) + (data[0x2] << 8) + (data[0x3]) + 4
     if len(data) != filesize:
-        raise ValueError('Filesize does not match header')
+        if not isPermissiveMode:
+            raise ValueError('Filesize does not match header')
 
     # Find compression method
     if data[0x4] == 0x01 or data[0x4] == 0x05: # No compression
@@ -47,10 +50,12 @@ def rtt2dds(data):
     elif data[0x4] == 0x08:
         dds_header.fourCC = b'DXT5'
     else:
-        raise ValueError('Unknown compression method')
+        if not isPermissiveMode:
+            raise ValueError('Unknown compression method')
 
     if data[0x5] != 0x0:
-        raise ValueError('Expecting 0x00 at pos 0x05')
+        if not isPermissiveMode:
+            raise ValueError('Expecting 0x00 at pos 0x05')
 
     # Get image format
     img_fmt = (data[0x6] << 8) + data[0x7]
@@ -63,16 +68,19 @@ def rtt2dds(data):
         dds_header.RGBBitCount  = 8
         dds_header.ABitMask     = 0xFF
     elif img_fmt == 0xAA1B:
-        raise ValueError('Image format not yet reversed')
+        if not isPermissiveMode:
+            raise ValueError('Image format not yet reversed')
     else:
-        raise ValueError('Unknown image format')
+        if not isPermissiveMode:
+            raise ValueError('Unknown image format')
 
     # Get resolution
     dds_header.width = (data[0x8] << 8) + data[0x9]
     dds_header.height = (data[0xa] << 8) + data[0xb]
 
     if data[0xc] != 0x0:
-        raise ValueError('Expecting 0x0 at pos 0x0C')
+        if not isPermissiveMode:
+            raise ValueError('Expecting 0x0 at pos 0x0C')
 
     # Not sure what this data is but I'm using it to block formats not reversed
     if data[0xd] == 0x1 and data[0xf] == 0x2:
@@ -80,7 +88,8 @@ def rtt2dds(data):
     else:
         # Files that reach here are the defaultfog files (but not the
         # aqua ones)
-        raise ValueError('Image format not yet reversed (defaultfog)')
+        if not isPermissiveMode:
+            raise ValueError('Image format not yet reversed (defaultfog)')
 
     dds_header.num_mipmaps = data[0xe]
     if dds_header.fourCC == b'DXT1':
@@ -99,7 +108,8 @@ def rtt2dds(data):
     if len(data) - 0x80 != ffutils.get_img_data_size(dds_header.width,
             dds_header.height, dds_header.num_mipmaps, bytes_per_pixel,
             bytes_per_group):
-        raise ValueError('Mipmap number to filesize mismatch')
+        if not isPermissiveMode:
+            raise ValueError('Mipmap number to filesize mismatch')
 
     dds_header_bytes = dds_header.create()
     for i in range(0, len(dds_header_bytes)):
@@ -108,12 +118,20 @@ def rtt2dds(data):
     return data
 
 def main():
-    for filepath in sys.argv[1:]:
+    parser = argparse.ArgumentParser(
+            description="Convert .rtt files to .dds files")
+    parser.add_argument("--permissive", action="store_true", help="run in permissve mode (don't throw on unexpected values)")
+    parser.add_argument("filepath", nargs="+", help="path to .rtt file")
+    args = parser.parse_args()
+    if args.permissive:
+        print("Running in permissive mode")
+
+    for filepath in args.filepath:
         print("Processing " + filepath)
         try:
             with open(filepath, 'rb') as f:
                 rttdata = bytearray(f.read())
-            ddsdata = rtt2dds(rttdata)
+            ddsdata = rtt2dds(rttdata, args.permissive)
             out_filename = '.'.join(os.path.basename(filepath).split('.')[:-1]) + '.dds'
             with open(os.path.join(os.path.dirname(filepath), out_filename), 'wb') as f:
                 f.write(ddsdata)
