@@ -79,6 +79,12 @@ def rtt2dds(data: bytearray, isPermissiveMode: bool=False):
         dds_header.RGBBitCount  = 8
         dds_header.ABitMask     = 0xFF
     elif img_fmt == 0xAA1B:
+        dds_header.hasAlpha    = True
+        dds_header.RGBBitCount = 32
+        dds_header.ABitMask    = 0xFF000000
+        dds_header.RBitMask    = 0x00FF0000
+        dds_header.BBitMask    = 0x0000FF00
+        dds_header.GBitMask    = 0x000000FF
         msg = 'Image format (0xAA1B) not yet reversed'
         if isPermissiveMode:
             print(" - " + msg, end="")
