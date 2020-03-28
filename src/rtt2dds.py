@@ -38,7 +38,7 @@ def rtt2dds(data, isPermissiveMode=False):
             raise ValueError(msg)
 
     # File size (+4 since points to start of last DWORD)
-    filesize = (data[0x1] << 16) + (data[0x2] << 8) + (data[0x3]) + 4
+    filesize = (struct.unpack(">I", data[:0x4])[0] & 0x00FFFFFF) + 4
     if len(data) != filesize:
         msg = 'Filesize does not match header'
         if isPermissiveMode:
@@ -70,7 +70,7 @@ def rtt2dds(data, isPermissiveMode=False):
             raise ValueError(msg)
 
     # Get image format
-    img_fmt = (data[0x6] << 8) + data[0x7]
+    img_fmt = struct.unpack(">H", data[0x6:0x8])[0]
     if img_fmt == 0xAAE4:
         pass # Already set above
     elif img_fmt == 0xA9FF:
@@ -93,8 +93,8 @@ def rtt2dds(data, isPermissiveMode=False):
             raise ValueError(msg)
 
     # Get resolution
-    dds_header.width = (data[0x8] << 8) + data[0x9]
-    dds_header.height = (data[0xa] << 8) + data[0xb]
+    dds_header.width = struct.unpack(">H", data[0x8:0xa])[0]
+    dds_header.height = struct.unpack(">H", data[0xa:0xc])[0]
 
     if data[0xc] != 0x0:
         msg = 'Expecting 0x0 at pos 0x0C'
