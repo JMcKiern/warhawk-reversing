@@ -34,6 +34,14 @@ There is a `--permissive` mode that can be used to bypass the checks that valida
 ./rtt2dds.py --permissive /path/to/sample_texture1.rtt
 ```
 
+### ngp_models
+
+The models within .ngp files can be extracted using ngp_models.py:
+```
+./ngp_models.py sample_ngp.ngp
+```
+This will search the .ngp file looking for a model headers. Each model will be put into an .obj file. If a texture is linked to the model, this will be output to a .dds file with a .mtl (material) file to load it on to the model.
+
 ## Contributing
 
 Any help would be much appreciated.  
