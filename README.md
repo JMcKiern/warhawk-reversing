@@ -2,7 +2,7 @@
 
 Some scripts to reverse the file formats used in [WarHawk](https://en.wikipedia.org/wiki/Warhawk_(2007_video_game)).
 
-The ultimate goal of this project is to end up with a collection of scripts that can convert the custom file formats into common formats (eg .obj, .dds). The emphasis is on the texture and model formats (.rtt and .ngp).
+The ultimate goal of this project is to end up with a collection of scripts that can convert the custom file formats into common formats (eg .obj, .dds). Howver, the emphasis is on the texture and model formats (.rtt and .ngp). Currently, almost all .rtt files can be converted to .dds, and ngp_models.py provides a functioning but crude method of extracting most of the models.
 
 ## File Formats
 
@@ -44,5 +44,5 @@ This will search the .ngp file looking for a model headers. Each model will be p
 
 ## Contributing
 
-Any help would be much appreciated.  
+Contributions are welcome.  
 Feel free to open an issue or pr.
