@@ -1,6 +1,7 @@
 # NGP
 
-.ngp files store models, texture data, the model data, UV coordinates and presumably some other data (animation, normal maps etc.)
+.ngp files store models, texture data, the model data, UV coordinates and
+presumably some other data (animation, normal maps etc.)
 
 ## Header
 
@@ -47,7 +48,8 @@ The header is 0x20 bytes long.
 
 ## Notes
 
-In addition to the terminology outlined in the docs [README.md](README.md), there is some terminology specific to NGP:
+In addition to the terminology outlined in the docs [README.md](README.md),
+there is some terminology specific to NGP:
 
 ### Standard Table
 
