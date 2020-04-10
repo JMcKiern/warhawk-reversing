@@ -9,7 +9,7 @@ The ultimate goal of this project is to end up with a collection of scripts that
 Within the psarc, the file formats used are as follows:
 - [.rtt](docs/RTT.md) - Basically a DDS with a custom header
 - .vram - Multiple textures
-- .ngp - Stores some texture data, the model data and presumably some others (animation, normal maps, uv maps etc.)
+- [.ngp](docs/NGP.md) - Stores some texture data, the model data and presumably some others (animation, normal maps, uv maps etc.)
 - .ptr - Has list of location for various model header and textures
 - .dat - content.dat or external_paths.dat
 - .loc - Localisation files (these seem to be in UTF-16 Big Endian)
