@@ -81,7 +81,7 @@ def main():
         header = ngp_data[textureHeaderOffset:textureHeaderOffset+0x10]
         print("Parsing: " + str([hex(j) for j in header]))
         rttdata = parseNGPTextureHeader(header, ngp_data, vram_data)
-        with open(hex(i) + ".rtt", 'wb') as f:
+        with open(hex(i) + "_" + hex(textureHeaderOffset) + ".rtt", 'wb') as f:
             f.write(rttdata)
 
 if __name__ == '__main__':
