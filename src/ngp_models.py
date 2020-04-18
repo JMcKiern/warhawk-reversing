@@ -106,8 +106,10 @@ def extractModel(filenameStem: str, headerOffset: int):
                 ngp_data[dataptr+i+4:dataptr+i+8] != struct.pack(">I", 0x00)):
             textureHeaderOffset = dereferenceRelativePointer(ngp_data, dataptr+i+4)
 
-    modelName = filenameStem + "_" + hex(headerOffset)
+    exportAsObj(filenameStem, headerOffset, vertices, faces, uvs, textureHeaderOffset)
 
+def exportAsObj(filenameStem: str, headerOffset: int, vertices: list, faces: list, uvs: list, textureHeaderOffset: int=-1):
+    modelName = filenameStem + "_" + hex(headerOffset)
     with open(modelName + ".obj", "w") as f:
         if textureHeaderOffset != -1:
             f.write("mtllib " + modelName + ".mtl\n")
