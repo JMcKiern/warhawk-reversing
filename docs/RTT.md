@@ -16,10 +16,10 @@ The header is 0x80 bytes long but in almost all cases, the data resides in the f
 |0x06|0x02|0xAAE4|Image Format|0xAAE4 - DXT1, DXT3, DXT5, ...?<br>0xA9FF - Boundary Mask (1 byte alphas)<br>0xAA1B - *Unknown*|
 |0x08|0x02|0x0400|Width|Image pixel width|
 |0x0A|0x02|0x0400|Height|Image pixel height|
-|0x0C|0x01|0x00|*Unknown*|Always 0?|
+|0x0C|0x01|0x00|*Unknown*|Always 0? Opposite of Data Location Flag?|
 |0x0D|0x01|0x01|*Unknown*||
 |0x0E|0x01|0x01|Number of mipmaps|A value of 0x01 means 1 layer (no mipmapping)|
-|0x0F|0x01|0x02|*Unknown*||
+|0x0F|0x01|0x02|*Unknown*|Likely the number of dimensions|
 
 ### Header Statistics
 
