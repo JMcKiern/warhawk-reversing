@@ -24,6 +24,9 @@ class DdsFlags:
     DDSCAPS_MIPMAP  = 0x400000
     DDSCAPS_TEXTURE = 0x1000
 
+    # DDS CAPS2 Flags
+    DDSCAPS2_VOLUME = 0x200000
+
 class DdsHeader:
     __ddsMagic: bytes = b'DDS '
     __headerSize: int = 124
@@ -34,6 +37,7 @@ class DdsHeader:
     fourCC: str
     width: int
     height: int
+    depth: int
     num_mipmaps: int
     hasAlpha: bool
     isPitch: bool
@@ -126,12 +130,13 @@ class DdsHeader:
         header += struct.pack("<I", self.height)
         header += struct.pack("<I", self.width)
         header += struct.pack("<I", 0) # TODO: pitch or linear size
-        header += struct.pack("<I", 0) # TODO: depth
+        header += struct.pack("<I", self.depth if self.hasDepth else 0)
         header += struct.pack("<I", self.num_mipmaps)
         header += struct.pack("<I", 0) * 11 # Reserved
         header += self.__create_pixelformat()
         header += struct.pack("<I", self.__get_caps_flags())
-        header += struct.pack("<I", 0) # TODO: caps2 - this deals with cubemaps/volume textures
+        caps2 = DdsFlags.DDSCAPS2_VOLUME if self.hasDepth else 0
+        header += struct.pack("<I", caps2)
         header += struct.pack("<I", 0) # caps3
         header += struct.pack("<I", 0) # caps4
         header += struct.pack("<I", 0) # reserved2
