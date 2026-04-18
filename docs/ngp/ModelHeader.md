@@ -48,19 +48,13 @@ These *Unknown Structures* are 96 bit long data structures that link currently u
 
 ### UV Coordinates
 
-The UV coordinates seem to be centred around 0x3800 (ie (0x3800, 0x3800) is
-(0.5, 0.5)). However, they're not linear, with the following transformation
-happening:
+UV coordinates are **IEEE 754 half-precision floats** (float16, big-endian). Parse
+with `struct.unpack(">e", ...)`.
 
 |Raw Coordinate Data|Texture Space Coordinate|
 |---|---|
-|0x17DD|Approaching 0|
+|0x17DD|≈ 0.00192 (near 0)|
 |0x3800|0.5|
-|0x3C1A|Approaching 1|
+|0x3C1A|≈ 1.025 (slightly over 1)|
 
-The following function seems to work well enough for what I've tested...
-
-```python
-def translate(val):
-        return (((val / 0x3800) ** 10) / 2)
-```
+Y is flipped relative to texture space (subtract from 1 after decoding).
