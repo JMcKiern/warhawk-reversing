@@ -52,7 +52,7 @@ def getFaces(filenameStem: str, facesOffset: int, numberOfIndicesUsedInFaces: in
         faces.append(faceVertices)
     return faces
 
-def getVertices(filenameStem: str, vertexOffset: int, numberOfVertices: int):
+def getVertices(filenameStem: str, vertexOffset: int, numberOfVertices: int, scales=(1.0, 1.0, 1.0)):
     with open(filenameStem + ".ngp", 'rb') as f:
         ngp_data = bytearray(f.read())
 
@@ -60,9 +60,9 @@ def getVertices(filenameStem: str, vertexOffset: int, numberOfVertices: int):
     vertices = []
     for i in range(0, len(verticesRaw), 6):
         vertexCoords = []
-        for j in range(0, 6, 2):
+        for j, scale in zip(range(0, 6, 2), scales):
             val, = struct.unpack(">h", verticesRaw[i+j:i+j+2])
-            vertexCoords.append((val + 0x8000) / 0x8000)
+            vertexCoords.append(val / 32768.0 * scale)
         vertices.append(vertexCoords)
     return vertices
 
@@ -122,8 +122,9 @@ def extractModel(filenameStem: str, headerOffset: int):
         numberOfIndicesUsedInFaces, = struct.unpack(">I", header[0x1c:0x1c+4])
         facesOffset, = struct.unpack(">I", header[0x28:0x28+4])
         vertexOffset, = struct.unpack(">I", header[0x34:0x34+4])
+        sx, sy, sz = struct.unpack(">fff", header[0x08:0x14])
         faces = getFaces(filenameStem, facesOffset, numberOfIndicesUsedInFaces)
-        vertices = getVertices(filenameStem, vertexOffset, numberOfVertices)
+        vertices = getVertices(filenameStem, vertexOffset, numberOfVertices, scales=(sx, sy, sz))
         uvs = getUVs(filenameStem, header, numberOfVertices)
     elif magic == 2:
         numLinkers = _count_type2_linkers(ngp_data, headerOffset)
@@ -142,9 +143,10 @@ def extractModel(filenameStem: str, headerOffset: int):
         raise ValueError(f"Unknown magic 0x{magic:08x}")
 
     textureHeaderOffset = _findTextureHeader(ngp_data, headerOffset)
-    exportAsObj(filenameStem, headerOffset, vertices, faces, uvs, textureHeaderOffset)
+    exportAsObj(filenameStem, headerOffset, vertices, faces, uvs, textureHeaderOffset,
+                flip_winding=(magic == 2))
 
-def exportAsObj(filenameStem: str, headerOffset: int, vertices: list, faces: list, uvs: list, textureHeaderOffset: int=-1):
+def exportAsObj(filenameStem: str, headerOffset: int, vertices: list, faces: list, uvs: list, textureHeaderOffset: int=-1, flip_winding: bool=False):
     modelName = filenameStem + "_" + hex(headerOffset)
     with open(modelName + ".obj", "w") as f:
         if textureHeaderOffset != -1:
@@ -152,16 +154,17 @@ def exportAsObj(filenameStem: str, headerOffset: int, vertices: list, faces: lis
             f.write("usemtl Textured\n")
         f.write("o " + modelName + "\n")
         for i in range(0, len(vertices)):
-            f.write("v ")
-            f.write(" ".join([str(c) for c in vertices[i]]))
-            f.write("\n")
+            x, y, z = vertices[i]
+            # game uses Z-up; remap to OBJ Y-up: X=X, Y=Z, Z=-Y
+            f.write("v %s %s %s\n" % (x, z, -y))
         for i in range(0, len(uvs)):
             f.write("vt ")
             f.write(" ".join([str(c) for c in uvs[i]]))
             f.write("\n")
         for i in range(0, len(faces)):
+            verts = faces[i][::-1] if flip_winding else faces[i]
             f.write("f ")
-            f.write(" ".join([(str(v) + "/" + str(v)) for v in faces[i]]))
+            f.write(" ".join([(str(v) + "/" + str(v)) for v in verts]))
             f.write("\n")
 
     textureFilename = modelName + ".dds"
